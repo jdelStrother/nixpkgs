@@ -1,4 +1,4 @@
-{lib, stdenv, fetchurl, libogg, libvorbis, pkg-config}:
+{lib, stdenv, fetchurl, libogg, libvorbis, pkg-config, automake, autoconf, libtool}:
 
 stdenv.mkDerivation rec {
   name = "libtheora-1.1.1";
@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
   outputs = [ "out" "dev" "devdoc" ];
   outputDoc = "devdoc";
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [ pkg-config automake autoconf libtool ];
   propagatedBuildInputs = [ libogg libvorbis ];
 
   # GCC's -fforce-addr flag is not supported by clang
@@ -19,6 +19,10 @@ stdenv.mkDerivation rec {
   postPatch = lib.optionalString stdenv.isDarwin ''
     substituteInPlace configure --replace "-fforce-addr" ""
   '';
+
+  # libtheora's configure script is generated with an old version of libtool.
+  # Regenerate with a modern version:
+  preConfigure = "sh autogen.sh";
 
   meta = with lib; {
     homepage = "https://www.theora.org/";
