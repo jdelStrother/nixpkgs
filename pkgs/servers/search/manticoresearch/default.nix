@@ -1,6 +1,7 @@
 { lib, stdenv, fetchFromGitHub, fetchurl
 , bison, cmake, flex
 , boost, icu, mariadb-connector-c, re2
+    ,pkg-config
 }:
 let
   boost_static = boost.override { enableStatic = true; };
@@ -55,6 +56,7 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [
+    pkg-config
     bison
     cmake
     flex
@@ -66,17 +68,32 @@ stdenv.mkDerivation rec {
     icu.dev
     mariadb-connector-c
     re2
+    pkg-config
   ];
+
+  postPatch = ''
+    sed -i '1s/^/set(CMAKE_FIND_DEBUG_MODE TRUE)/' cmake/GetRE2.cmake
+    substituteInPlace cmake/GetRE2.cmake \
+        --replace 'find_package ( re2 MODULE QUIET )' 'find_package ( re2 MODULE REQUIRED )'
+    substituteInPlace cmake/GetRE2.cmake \
+        --replace 'find_package ( re2 QUIET CONFIG )' 'find_package ( re2 CONFIG REQUIRED )'
+  '';
 
   cmakeFlags = [
     "-DMYSQL_CONFIG_EXECUTABLE=${mariadb-connector-c}/bin/mysql_config"
     "-DMYSQL_INCLUDE_DIR=${mariadb-connector-c.dev}/include/mariadb"
     "-DRE2_LIBRARY=${re2}/lib/libre2.a"
+    "-Dre2_DIR=${re2}/include"
+    "-DRE2_DIR=${re2}/include"
+    "-Dre2_LIBRARY=${re2}/lib/libre2.a"
+    "-Dre2_INCLUDE_DIR=${re2}/include"
+    "-DRE2_LIBRARY=${re2}/lib/libre2.a"
+    "-DRE2_INCLUDE_DIR=${re2}/include"
     "-DSTEMMER_LIBRARY=${stemmer}/lib/libstemmer.o"
     "-DSTEMMER_INCLUDE_DIR=${stemmer}/include"
     "-DWITH_GALERA=0"
     "-DWITH_ICU_FORCE_STATIC=0"
-    "-DWITH_RE2_FORCE_STATIC=0"
+    # "-DWITH_RE2_FORCE_STATIC=0"
     "-DWITH_STEMMER_FORCE_STATIC=0"
   ];
 
