@@ -73,6 +73,8 @@ let
       cmake
       pkg-config
     ];
+    # Enable SSE4.1 on x86_64 to avoid GCC 14 target attribute issues
+    env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.isx86_64 "-msse4.1";
     # Use the custom CMakeLists.txt from columnar
     postPatch = ''
       cp ${columnarSource}/streamvbyte/CMakeLists.txt CMakeLists.txt
@@ -97,6 +99,10 @@ let
     ];
     buildInputs = [ simde ];
     cmakeFlags = [ "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" ];
+    # Enable SSE3/SSSE3/SSE4.1 on x86_64 to avoid GCC 14 target attribute issues
+    # (Columnar's custom libfastpfor/CMakeLists.txt comments these out. I think get away with it because they just build with clang?)
+    env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.isx86_64 "-msse3 -mssse3 -msse4.1";
+
     postPatch = ''
       cp ${columnarSource}/libfastpfor/CMakeLists.txt CMakeLists.txt
 
@@ -137,6 +143,10 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     "-DSKIP_KNN=ON" # Skip KNN & embeddings for now
   ];
+  postPatch = ''
+    # I've failed to get avx compiled, skip it for now.
+    sed -i '/set (ADD_AVX_BUILDS 1)/d' CMakeLists.txt
+  '';
 
   meta = with lib; {
     description = "Manticore Columnar Library - columnar storage and secondary indexes library for Manticore Search";
